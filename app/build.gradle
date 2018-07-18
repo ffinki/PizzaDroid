@@ -4,9 +4,9 @@ android {
     signingConfigs {
         config {
             keyAlias 'ffinki'
-            keyPassword 'mojatagitarabr2'
+            keyPassword 'pizzadroidkey'
             storeFile file('C:/Users/f_vel/AndroidStudioProjects/pizzadroid.jks')
-            storePassword 'mojatagitarabr2'
+            storePassword 'pizzadroidstore'
         }
     }
     compileSdkVersion 28
