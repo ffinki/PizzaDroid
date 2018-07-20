@@ -8,8 +8,11 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.webkit.WebView;
 import android.widget.Toast;
 
+import com.droid.filip.pizzadroid.R;
+import com.droid.filip.pizzadroid.tasks.DistanceMatrixTask;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApi;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -103,6 +106,7 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     latLng = new LatLng(loc.getLatitude(), loc.getLongitude());
                     doWhenMapIsReady();
                     getPizzaRestaurants();
+                    fillTheMapWithPizzas(loc);
                 }
             }
         });
@@ -128,7 +132,7 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     .icon(BitmapDescriptorFactory.defaultMarker(
                             BitmapDescriptorFactory.HUE_AZURE));
             map.addMarker(markerOpt);
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14));
         }
 
     }
@@ -171,5 +175,25 @@ public class PizzaMapFragment extends SupportMapFragment implements
 
     boolean isPizzaPlace(List<Integer> placeTypes) {
         return placeTypes.contains(Place.TYPE_FOOD) || placeTypes.contains(Place.TYPE_RESTAURANT);
+    }
+
+    private void fillTheMapWithPizzas(Location loc) {
+        if (map != null && isResumed() && pizzaPlaces != null) {
+            String url = "https://maps.googleapis.com/maps/api/distancematrix/json?";
+            StringBuilder originDestination = new StringBuilder();
+            originDestination.append("origins=" + loc.getLatitude() + "," + loc.getLongitude() + "&");
+            originDestination.append("destinations=");
+            for (int i=0; i<pizzaPlaces.size(); i++) {
+                originDestination.append("place_id:"+pizzaPlaces.get(i).getId());
+                if (i < pizzaPlaces.size() - 1)
+                    originDestination.append("|");
+            }
+            originDestination.append("&mode=walking");
+            String params = originDestination.toString();
+            String apiKey = "key=" + getResources().getString(R.string.GOOGLE_API_KEY);
+            String userAgent = new WebView(getActivity()).getSettings().getUserAgentString();
+            new DistanceMatrixTask(map, pizzaPlaces).execute(url, apiKey, params, userAgent);
+        }
+
     }
 }
