@@ -106,7 +106,6 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     latLng = new LatLng(loc.getLatitude(), loc.getLongitude());
                     doWhenMapIsReady();
                     getPizzaRestaurants();
-                    fillTheMapWithPizzas(loc);
                 }
             }
         });
@@ -140,7 +139,7 @@ public class PizzaMapFragment extends SupportMapFragment implements
     void getPizzaRestaurants() {
         if (map != null && latLng != null && isResumed()) {
             Task<AutocompletePredictionBufferResponse> predictions =  Places.getGeoDataClient(context).getAutocompletePredictions(
-                    "pizza restaurant",
+                    "pizza",
                     map.getProjection().getVisibleRegion().latLngBounds,
                     null);
             predictions.addOnCompleteListener(new OnCompleteListener<AutocompletePredictionBufferResponse>() {
@@ -153,18 +152,8 @@ public class PizzaMapFragment extends SupportMapFragment implements
                             AutocompletePrediction prediction = predictions.get(i);
                             Task<PlaceBufferResponse> placeResponse =
                                     Places.getGeoDataClient(context).getPlaceById(prediction.getPlaceId());
-                            placeResponse.addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
-                                @Override
-                                public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
-                                    PlaceBufferResponse placeBuffer = task.getResult();
-                                    if (task.isSuccessful() && placeBuffer != null) {
-                                        Place place = placeBuffer.get(0);
-                                        if (isPizzaPlace(place.getPlaceTypes()))
-                                            pizzaPlaces.add(place);
-                                    }
-
-                                }
-                            });
+                            placeResponse.addOnCompleteListener(
+                                new PlaceBufferCompleteListener(i, predictions.getCount()));
                         }
                     }
                 }
@@ -177,11 +166,11 @@ public class PizzaMapFragment extends SupportMapFragment implements
         return placeTypes.contains(Place.TYPE_FOOD) || placeTypes.contains(Place.TYPE_RESTAURANT);
     }
 
-    private void fillTheMapWithPizzas(Location loc) {
+    private void fillTheMapWithPizzas() {
         if (map != null && isResumed() && pizzaPlaces != null) {
             String url = "https://maps.googleapis.com/maps/api/distancematrix/json?";
             StringBuilder originDestination = new StringBuilder();
-            originDestination.append("origins=" + loc.getLatitude() + "," + loc.getLongitude() + "&");
+            originDestination.append("origins=" + latLng.latitude + "," + latLng.longitude + "&");
             originDestination.append("destinations=");
             for (int i=0; i<pizzaPlaces.size(); i++) {
                 originDestination.append("place_id:"+pizzaPlaces.get(i).getId());
@@ -190,10 +179,35 @@ public class PizzaMapFragment extends SupportMapFragment implements
             }
             originDestination.append("&mode=walking");
             String params = originDestination.toString();
-            String apiKey = "key=" + getResources().getString(R.string.GOOGLE_API_KEY);
+            String apiKey = "key=" + getResources().getString(R.string.GOOGLE_API_WEB);
             String userAgent = new WebView(getActivity()).getSettings().getUserAgentString();
             new DistanceMatrixTask(map, pizzaPlaces).execute(url, apiKey, params, userAgent);
         }
 
+    }
+
+    private class PlaceBufferCompleteListener implements OnCompleteListener<PlaceBufferResponse> {
+
+        private int i;
+        private int n;
+
+        public PlaceBufferCompleteListener(int i, int n) {
+            this.i = i;
+            this.n = n;
+        }
+
+        @Override
+        public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
+            PlaceBufferResponse response = task.getResult();
+            if (task.isSuccessful() && response != null) {
+                Place place = response.get(0);
+                if (isPizzaPlace(place.getPlaceTypes())) {
+                    pizzaPlaces.add(place);
+                    if (i == n - 1) {
+                        fillTheMapWithPizzas();
+                    }
+                }
+            }
+        }
     }
 }

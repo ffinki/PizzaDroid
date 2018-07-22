@@ -75,8 +75,8 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
 
     @Override
     protected void onPostExecute(DistanceMatrixResponse distanceMatrixResponse) {
+        Log.d("DISTANCE", distanceMatrixResponse.getStatus());
         Row originDestinations = distanceMatrixResponse.getRows()[0];
-        Log.d("DISTANCE", Integer.toString(originDestinations.getElements().length));
         if (originDestinations.getElements().length != places.size())
             return;
         Element[] distances = originDestinations.getElements();
@@ -88,7 +88,7 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
                         .flat(true)
                         .position(places.get(i).getLatLng())
                         .icon(BitmapDescriptorFactory.defaultMarker(
-                                BitmapDescriptorFactory.HUE_AZURE));
+                                BitmapDescriptorFactory.HUE_RED));
                 map.addMarker(opt);
             }
         }

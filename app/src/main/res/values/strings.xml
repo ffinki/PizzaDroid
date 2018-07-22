@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Pizza Droid</string>
     <string name="GOOGLE_API_KEY">AIzaSyCll1a68jFvwrsAJLQID_hZTbqF_zngDR8</string>
+    <string name="GOOGLE_API_WEB">AIzaSyCk5qQ4bAqztZs-te5hgyriejK3P30Uom8</string>
 </resources>
