@@ -149,11 +149,14 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     if (task.isSuccessful() && predictions != null) {
                         pizzaPlaces = new ArrayList<>();
                         for (int i=0; i<predictions.getCount(); i++) {
-                            AutocompletePrediction prediction = predictions.get(i);
+                            AutocompletePrediction prediction = predictions.get(i).freeze();
                             Task<PlaceBufferResponse> placeResponse =
                                     Places.getGeoDataClient(context).getPlaceById(prediction.getPlaceId());
                             placeResponse.addOnCompleteListener(
                                 new PlaceBufferCompleteListener(i, predictions.getCount()));
+                            if (i == predictions.getCount() - 1 && prediction.isDataValid()) {
+                                predictions.release();
+                            }
                         }
                     }
                 }
@@ -173,7 +176,8 @@ public class PizzaMapFragment extends SupportMapFragment implements
             originDestination.append("origins=" + latLng.latitude + "," + latLng.longitude + "&");
             originDestination.append("destinations=");
             for (int i=0; i<pizzaPlaces.size(); i++) {
-                originDestination.append("place_id:"+pizzaPlaces.get(i).getId());
+                LatLng placeLatLng = pizzaPlaces.get(i).getLatLng();
+                originDestination.append(placeLatLng.latitude + "," + placeLatLng.longitude);
                 if (i < pizzaPlaces.size() - 1)
                     originDestination.append("|");
             }
@@ -200,14 +204,18 @@ public class PizzaMapFragment extends SupportMapFragment implements
         public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
             PlaceBufferResponse response = task.getResult();
             if (task.isSuccessful() && response != null) {
-                Place place = response.get(0);
+                Place place = response.get(0).freeze();
                 if (isPizzaPlace(place.getPlaceTypes())) {
                     pizzaPlaces.add(place);
-                    if (i == n - 1) {
+                    if (i == n - 1 && place.isDataValid()) {
                         fillTheMapWithPizzas();
                     }
                 }
             }
+            response.release();
+
         }
+
+
     }
 }

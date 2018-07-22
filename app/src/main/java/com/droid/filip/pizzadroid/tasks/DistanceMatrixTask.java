@@ -48,7 +48,7 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
         BufferedReader br = null;
         DistanceMatrixResponse response = null;
         try {
-            url = new URL(urlString + params + "&" + apiKey);
+            url = new URL(urlString + params);
             https = (HttpsURLConnection)url.openConnection();
             https.setRequestProperty("User-Agent", userAgent);
             https.setRequestProperty("Accept", "application/json");
