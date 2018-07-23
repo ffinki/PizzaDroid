@@ -75,7 +75,6 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
 
     @Override
     protected void onPostExecute(DistanceMatrixResponse distanceMatrixResponse) {
-        Log.d("DISTANCE", distanceMatrixResponse.getStatus());
         Row originDestinations = distanceMatrixResponse.getRows()[0];
         if (originDestinations.getElements().length != places.size())
             return;
