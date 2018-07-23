@@ -80,14 +80,15 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
             return;
         Element[] distances = originDestinations.getElements();
         for (int i=0; i<distances.length; i++) {
-            Log.d("DISTANCE", distances[i].getDuration().getText() + " - " + distances[i].getDistance().getText());
-            if (distances[i].getStatus() == "OK" && distances[i].getDuration().getValue()/60 < 11) {
+            Log.d("DISTANCE", String.valueOf(distances[i].getDuration().getValue()));
+            if (distances[i].getDuration().getValue()/60 < 11) {
                 MarkerOptions opt = new MarkerOptions()
                         .draggable(false)
                         .flat(true)
                         .position(places.get(i).getLatLng())
                         .icon(BitmapDescriptorFactory.defaultMarker(
-                                BitmapDescriptorFactory.HUE_RED));
+                                BitmapDescriptorFactory.HUE_RED))
+                        .title(distanceMatrixResponse.getDestination_addresses()[i]);
                 map.addMarker(opt);
             }
         }

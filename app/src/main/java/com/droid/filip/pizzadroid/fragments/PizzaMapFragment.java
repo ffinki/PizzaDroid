@@ -21,6 +21,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.AutocompletePrediction;
 import com.google.android.gms.location.places.AutocompletePredictionBuffer;
 import com.google.android.gms.location.places.AutocompletePredictionBufferResponse;
+import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
@@ -131,7 +132,7 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     .icon(BitmapDescriptorFactory.defaultMarker(
                             BitmapDescriptorFactory.HUE_AZURE));
             map.addMarker(markerOpt);
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14));
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
         }
 
     }
@@ -141,6 +142,7 @@ public class PizzaMapFragment extends SupportMapFragment implements
             Task<AutocompletePredictionBufferResponse> predictions =  Places.getGeoDataClient(context).getAutocompletePredictions(
                     "pizza",
                     map.getProjection().getVisibleRegion().latLngBounds,
+                    GeoDataClient.BoundsMode.STRICT,
                     null);
             predictions.addOnCompleteListener(new OnCompleteListener<AutocompletePredictionBufferResponse>() {
                 @Override
