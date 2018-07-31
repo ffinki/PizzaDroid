@@ -3,6 +3,8 @@ package com.droid.filip.pizzadroid.fragments;
 import android.annotation.SuppressLint;
 import android.arch.core.executor.DefaultTaskExecutor;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -12,6 +14,8 @@ import android.webkit.WebView;
 import android.widget.Toast;
 
 import com.droid.filip.pizzadroid.R;
+import com.droid.filip.pizzadroid.receivers.LocationUpdateReceiver;
+import com.droid.filip.pizzadroid.services.MyPlaceRefresherService;
 import com.droid.filip.pizzadroid.tasks.DistanceMatrixTask;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApi;
@@ -72,7 +76,13 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     .build();
             client.connect();
         }
-
+        //registering the broadcast receiver
+        LocationUpdateReceiver lur = new LocationUpdateReceiver();
+        IntentFilter filter = new IntentFilter("com.droid.filip.pizzadroid.intents.lur");
+        context.registerReceiver(lur, filter);
+        //starting the service
+        Intent serviceIntent = new Intent(getActivity(), MyPlaceRefresherService.class);
+        getActivity().startService(serviceIntent);
     }
 
     @Override
