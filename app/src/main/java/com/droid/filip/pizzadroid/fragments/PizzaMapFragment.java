@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PizzaMapFragment extends SupportMapFragment implements
-        OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
+        OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Context context = null;
     private GoogleMap map = null;
@@ -76,19 +76,11 @@ public class PizzaMapFragment extends SupportMapFragment implements
                     .build();
             client.connect();
         }
-        //registering the broadcast receiver
-        LocationUpdateReceiver lur = new LocationUpdateReceiver();
-        IntentFilter filter = new IntentFilter("com.droid.filip.pizzadroid.intents.lur");
-        context.registerReceiver(lur, filter);
-        //starting the service
-        Intent serviceIntent = new Intent(getActivity(), MyPlaceRefresherService.class);
-        getActivity().startService(serviceIntent);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        doWhenMapIsReady();
     }
 
     @SuppressLint("MissingPermission")
@@ -100,23 +92,32 @@ public class PizzaMapFragment extends SupportMapFragment implements
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-        doWhenMapIsReady();
     }
 
     @SuppressLint("MissingPermission")
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+        //take my location and set the map camera around that region
         FusedLocationProviderClient locator = LocationServices
                 .getFusedLocationProviderClient(context);
         Task<Location> myLocation = locator.getLastLocation();
         myLocation.addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
             public void onComplete(@NonNull Task<Location> task) {
-                Location loc = task.getResult();
-                if (task.isSuccessful() && loc != null) {
-                    latLng = new LatLng(loc.getLatitude(), loc.getLongitude());
-                    doWhenMapIsReady();
-                    getPizzaRestaurants();
+                Location location = task.getResult();
+                if (task.isSuccessful() && location != null) {
+                    latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+                    //registering the broadcast receiver
+                    LocationUpdateReceiver lur = new LocationUpdateReceiver(map);
+                    IntentFilter filter = new IntentFilter("com.droid.filip.pizzadroid.intents.lur");
+                    context.registerReceiver(lur, filter);
+                    //starting the service
+                    Intent serviceIntent = new Intent(context, MyPlaceRefresherService.class);
+                    serviceIntent.putExtra("GOOGLE_DM_API_KEY", getResources().getString(R.string.GOOGLE_API_WEB));
+                    serviceIntent.putExtra("USER_AGENT", new WebView(getActivity()).getSettings().getUserAgentString());
+                    serviceIntent.putExtra("LAT_LNG_BOUNDS", map.getProjection().getVisibleRegion().latLngBounds);
+                    context.startService(serviceIntent);
                 }
             }
         });
@@ -132,102 +133,4 @@ public class PizzaMapFragment extends SupportMapFragment implements
         Toast.makeText(context, "Connection failed", Toast.LENGTH_LONG).show();
     }
 
-    @SuppressLint("MissingPermission")
-    void doWhenMapIsReady() {
-        if (map != null && latLng != null && isResumed()) {
-            MarkerOptions markerOpt = new MarkerOptions()
-                    .draggable(false)
-                    .flat(true)
-                    .position(latLng)
-                    .icon(BitmapDescriptorFactory.defaultMarker(
-                            BitmapDescriptorFactory.HUE_AZURE));
-            map.addMarker(markerOpt);
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
-        }
-
-    }
-
-    void getPizzaRestaurants() {
-        if (map != null && latLng != null && isResumed()) {
-            Task<AutocompletePredictionBufferResponse> predictions =  Places.getGeoDataClient(context).getAutocompletePredictions(
-                    "pizza",
-                    map.getProjection().getVisibleRegion().latLngBounds,
-                    GeoDataClient.BoundsMode.STRICT,
-                    null);
-            predictions.addOnCompleteListener(new OnCompleteListener<AutocompletePredictionBufferResponse>() {
-                @Override
-                public void onComplete(@NonNull Task<AutocompletePredictionBufferResponse> task) {
-                    AutocompletePredictionBufferResponse predictions = task.getResult();
-                    if (task.isSuccessful() && predictions != null) {
-                        pizzaPlaces = new ArrayList<>();
-                        for (int i=0; i<predictions.getCount(); i++) {
-                            AutocompletePrediction prediction = predictions.get(i).freeze();
-                            Task<PlaceBufferResponse> placeResponse =
-                                    Places.getGeoDataClient(context).getPlaceById(prediction.getPlaceId());
-                            placeResponse.addOnCompleteListener(
-                                new PlaceBufferCompleteListener(i, predictions.getCount()));
-                            if (i == predictions.getCount() - 1 && prediction.isDataValid()) {
-                                predictions.release();
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-    }
-
-    boolean isPizzaPlace(List<Integer> placeTypes) {
-        return placeTypes.contains(Place.TYPE_FOOD) || placeTypes.contains(Place.TYPE_RESTAURANT);
-    }
-
-    private void fillTheMapWithPizzas() {
-        if (map != null && isResumed() && pizzaPlaces != null) {
-            String url = "https://maps.googleapis.com/maps/api/distancematrix/json?";
-            StringBuilder originDestination = new StringBuilder();
-            originDestination.append("origins=" + latLng.latitude + "," + latLng.longitude + "&");
-            originDestination.append("destinations=");
-            for (int i=0; i<pizzaPlaces.size(); i++) {
-                LatLng placeLatLng = pizzaPlaces.get(i).getLatLng();
-                originDestination.append(placeLatLng.latitude + "," + placeLatLng.longitude);
-                if (i < pizzaPlaces.size() - 1)
-                    originDestination.append("|");
-            }
-            originDestination.append("&mode=walking");
-            String params = originDestination.toString();
-            String apiKey = "key=" + getResources().getString(R.string.GOOGLE_API_WEB);
-            String userAgent = new WebView(getActivity()).getSettings().getUserAgentString();
-            new DistanceMatrixTask(map, pizzaPlaces).execute(url, apiKey, params, userAgent);
-        }
-
-    }
-
-    private class PlaceBufferCompleteListener implements OnCompleteListener<PlaceBufferResponse> {
-
-        private int i;
-        private int n;
-
-        public PlaceBufferCompleteListener(int i, int n) {
-            this.i = i;
-            this.n = n;
-        }
-
-        @Override
-        public void onComplete(@NonNull Task<PlaceBufferResponse> task) {
-            PlaceBufferResponse response = task.getResult();
-            if (task.isSuccessful() && response != null) {
-                Place place = response.get(0).freeze();
-                if (isPizzaPlace(place.getPlaceTypes())) {
-                    pizzaPlaces.add(place);
-                    if (i == n - 1 && place.isDataValid()) {
-                        fillTheMapWithPizzas();
-                    }
-                }
-            }
-            response.release();
-
-        }
-
-
-    }
 }

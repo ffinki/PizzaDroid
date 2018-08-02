@@ -1,5 +1,7 @@
 package com.droid.filip.pizzadroid.tasks;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -15,20 +17,23 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
 public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse, DistanceMatrixResponse> {
 
+    private Context context;
     private GoogleMap map;
-    private List<Place> places;
+    private ArrayList<Place> places;
 
-    public DistanceMatrixTask(GoogleMap map, List<Place> places) {
-        this.map = map;
+    public DistanceMatrixTask(Context context, ArrayList<Place> places) {
+        this.context = context;
         this.places = places;
     }
 
@@ -75,7 +80,7 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
 
     @Override
     protected void onPostExecute(DistanceMatrixResponse distanceMatrixResponse) {
-        Row originDestinations = distanceMatrixResponse.getRows()[0];
+        /*Row originDestinations = distanceMatrixResponse.getRows()[0];
         if (originDestinations.getElements().length != places.size())
             return;
         Element[] distances = originDestinations.getElements();
@@ -91,7 +96,12 @@ public class DistanceMatrixTask extends AsyncTask<String, DistanceMatrixResponse
                         .title(distanceMatrixResponse.getDestination_addresses()[i]);
                 map.addMarker(opt);
             }
-        }
+        }*/
+        Intent newBroadcastIntent = new Intent("com.droid.filip.pizzadroid.intents.lur");
+        newBroadcastIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+        newBroadcastIntent.putExtra("DISTANCES_RESPONSE", distanceMatrixResponse);
+        newBroadcastIntent.putExtra("PLACES", places);
+        context.sendBroadcast(newBroadcastIntent);
 
     }
 }
